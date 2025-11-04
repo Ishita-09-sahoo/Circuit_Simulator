@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circuit Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Circuit Simulator</h1>
+            <div class="controls">
+                <button id="clearCanvas" class="btn btn-secondary">Clear Canvas</button>
+                <button id="exportCircuit" class="btn btn-primary">Export Circuit</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Component Library -->
+            <div class="component-library">
+                <h3>Components</h3>
+                <div class="component-category">
+                    <h4>Passive Components</h4>
+                    <div class="component-item" draggable="true" data-component="resistor">
+                        <div class="component-icon resistor-icon"></div>
+                        <span>Resistor</span>
+                    </div>
+                    <div class="component-item" draggable="true" data-component="capacitor">
+                        <div class="component-icon capacitor-icon"></div>
+                        <span>Capacitor</span>
+                    </div>
+                    <div class="component-item" draggable="true" data-component="inductor">
+                        <div class="component-icon inductor-icon"></div>
+                        <span>Inductor</span>
+                    </div>
+                </div>
+                
+                <div class="component-category">
+                    <h4>Sources</h4>
+                    <div class="component-item" draggable="true" data-component="voltage-source">
+                        <div class="component-icon voltage-source-icon"></div>
+                        <span>Voltage Source</span>
+                    </div>
+                    <div class="component-item" draggable="true" data-component="current-source">
+                        <div class="component-icon current-source-icon"></div>
+                        <span>Current Source</span>
+                    </div>
+                </div>
+                
+                <div class="component-category">
+                    <h4>Tools</h4>
+                    <div class="component-item" id="wireTool" data-tool="wire">
+                        <div class="component-icon wire-icon"></div>
+                        <span>Wire Tool</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas Area -->
+            <div class="canvas-container">
+                <canvas id="circuitCanvas" width="800" height="600"></canvas>
+                <div class="canvas-overlay" id="canvasOverlay"></div>
+            </div>
+
+            <!-- Properties Panel -->
+            <div class="properties-panel">
+                <h3>Properties</h3>
+                <div id="componentProperties" class="properties-content">
+                    <p>Select a component to edit its properties</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Component Value Modal -->
+    <div id="valueModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Set Component Value</h3>
+            <div class="form-group">
+                <label for="componentValue">Value:</label>
+                <input type="text" id="componentValue" placeholder="e.g., 100Ω, 10μF, 1mH">
+            </div>
+            <div class="form-group">
+                <label for="componentName">Name (optional):</label>
+                <input type="text" id="componentName" placeholder="e.g., R1, C1, L1">
+            </div>
+            <button id="saveValue" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
