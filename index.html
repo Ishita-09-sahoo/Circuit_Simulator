@@ -79,14 +79,18 @@
     <div id="valueModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h3>Set Component Value</h3>
+            <h3>Set Component Nodes and Value</h3>
             <div class="form-group">
-                <label for="componentValue">Value:</label>
-                <input type="text" id="componentValue" placeholder="e.g., 100Ω, 10μF, 1mH">
+                <label for="node1Input">Node 1:</label>
+                <input type="number" id="node1Input" placeholder="e.g., 1" min="0">
             </div>
             <div class="form-group">
-                <label for="componentName">Name (optional):</label>
-                <input type="text" id="componentName" placeholder="e.g., R1, C1, L1">
+                <label for="node2Input">Node 2:</label>
+                <input type="number" id="node2Input" placeholder="e.g., 2" min="0">
+            </div>
+            <div class="form-group">
+                <label for="componentValue">Value:</label>
+                <input type="text" id="componentValue" placeholder="e.g., 100Ω, 10μF, 1mH, 5V">
             </div>
             <button id="saveValue" class="btn btn-primary">Save</button>
         </div>
