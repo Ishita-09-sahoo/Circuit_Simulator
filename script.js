@@ -45,6 +45,10 @@ class CircuitSimulator {
 
         // Modal events
         document.getElementById('saveValue').addEventListener('click', () => this.saveComponentValue());
+        const modalSourceType = document.getElementById('sourceTypeInput');
+        if (modalSourceType) {
+            modalSourceType.addEventListener('change', () => this.handleModalSourceTypeChange());
+        }
         document.querySelector('.close').addEventListener('click', () => this.closeModal());
         
         // Close modal when clicking outside
@@ -112,12 +116,21 @@ class CircuitSimulator {
             value: '',
             node1: null,
             node2: null,
-            rotation: 0
+            rotation: 0,
+            sourceDefinition: this.isSourceComponent(type) ? {
+                type: 'dc',
+                phaseAngle: 0,
+                frequency: 0
+            } : null
         };
 
         this.components.push(component);
         this.redrawCanvas();
         this.openValueModal(component);
+    }
+
+    isSourceComponent(type) {
+        return type === 'voltage-source' || type === 'current-source';
     }
 
     openValueModal(component) {
@@ -126,10 +139,49 @@ class CircuitSimulator {
         const node1 = document.getElementById('node1Input');
         const node2 = document.getElementById('node2Input');
         const value = document.getElementById('componentValue');
+        const sourceTypeGroup = document.getElementById('sourceTypeGroup');
+        const phaseAngleGroup = document.getElementById('phaseAngleGroup');
+        const frequencyGroup = document.getElementById('frequencyGroup');
+        const sourceTypeInput = document.getElementById('sourceTypeInput');
+        const phaseAngleInput = document.getElementById('phaseAngleInput');
+        const frequencyInput = document.getElementById('frequencyInput');
         node1.value = component.node1 ?? '';
         node2.value = component.node2 ?? '';
         value.value = component.value ?? '';
+        const isSource = this.isSourceComponent(component.type);
+        if (sourceTypeGroup) {
+            sourceTypeGroup.style.display = isSource ? 'block' : 'none';
+        }
+        if (sourceTypeInput) {
+            sourceTypeInput.value = component.sourceDefinition?.type || 'dc';
+        }
+        const showACFields = isSource && (component.sourceDefinition?.type === 'ac');
+        this.toggleModalACFields(showACFields);
+        if (phaseAngleInput) {
+            phaseAngleInput.value = component.sourceDefinition?.phaseAngle ?? 0;
+        }
+        if (frequencyInput) {
+            frequencyInput.value = component.sourceDefinition?.frequency ?? 0;
+        }
         modal.style.display = 'block';
+    }
+
+    handleModalSourceTypeChange() {
+        const sourceTypeInput = document.getElementById('sourceTypeInput');
+        if (!sourceTypeInput) return;
+        const isAC = sourceTypeInput.value === 'ac';
+        this.toggleModalACFields(isAC);
+    }
+
+    toggleModalACFields(show) {
+        const phaseAngleGroup = document.getElementById('phaseAngleGroup');
+        const frequencyGroup = document.getElementById('frequencyGroup');
+        if (phaseAngleGroup) {
+            phaseAngleGroup.style.display = show ? 'block' : 'none';
+        }
+        if (frequencyGroup) {
+            frequencyGroup.style.display = show ? 'block' : 'none';
+        }
     }
 
     saveComponentValue() {
@@ -137,6 +189,11 @@ class CircuitSimulator {
         const node1 = parseInt(document.getElementById('node1Input').value, 10);
         const node2 = parseInt(document.getElementById('node2Input').value, 10);
         const value = document.getElementById('componentValue').value.trim();
+        const isSource = this.isSourceComponent(this.pendingComponent.type);
+        const sourceTypeInput = document.getElementById('sourceTypeInput');
+        const phaseAngleInput = document.getElementById('phaseAngleInput');
+        const frequencyInput = document.getElementById('frequencyInput');
+        const sourceType = isSource && sourceTypeInput ? sourceTypeInput.value : 'dc';
         
         if (Number.isNaN(node1) || Number.isNaN(node2) || value === '') {
             alert('Please provide Node 1, Node 2 (numbers) and Value.');
@@ -146,6 +203,21 @@ class CircuitSimulator {
         this.pendingComponent.node1 = node1;
         this.pendingComponent.node2 = node2;
         this.pendingComponent.value = value;
+        if (isSource) {
+            const phaseAngle = phaseAngleInput ? parseFloat(phaseAngleInput.value) || 0 : 0;
+            const frequency = frequencyInput ? parseFloat(frequencyInput.value) || 0 : 0;
+            if (sourceType === 'ac' && (!frequencyInput || frequencyInput.value === '' || Number.isNaN(parseFloat(frequencyInput.value)))) {
+                alert('Please provide a frequency for AC sources.');
+                return;
+            }
+            this.pendingComponent.sourceDefinition = {
+                type: sourceType,
+                phaseAngle: sourceType === 'ac' ? phaseAngle : 0,
+                frequency: sourceType === 'ac' ? frequency : 0
+            };
+        } else {
+            this.pendingComponent.sourceDefinition = null;
+        }
         
         this.selectedComponent = this.pendingComponent;
         this.pendingComponent = null;
@@ -604,6 +676,12 @@ class CircuitSimulator {
     showComponentProperties(component) {
         const propertiesDiv = document.getElementById('componentProperties');
         const componentType = component.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const isSource = this.isSourceComponent(component.type);
+        const sourceDefinition = component.sourceDefinition || { type: 'dc', phaseAngle: 0, frequency: 0 };
+        const sourceTypeOptions = `
+            <option value="dc" ${sourceDefinition.type === 'dc' ? 'selected' : ''}>DC</option>
+            <option value="ac" ${sourceDefinition.type === 'ac' ? 'selected' : ''}>AC</option>
+        `;
         propertiesDiv.innerHTML = `
             <div class="form-group">
                 <label>Component: ${componentType}</label>
@@ -620,6 +698,22 @@ class CircuitSimulator {
                 <label>Value:</label>
                 <input type="text" id="propValue" value="${component.value}" placeholder="e.g., 5V, 2A, 100Ω">
             </div>
+            ${isSource ? `
+            <div class="form-group">
+                <label>Source Type:</label>
+                <select id="propSourceType" onchange="circuitSimulator.handlePropertySourceTypeChange(this.value)">
+                    ${sourceTypeOptions}
+                </select>
+            </div>
+            <div class="form-group" id="propPhaseGroup" style="display: ${sourceDefinition.type === 'ac' ? 'block' : 'none'};">
+                <label>Phase Angle (degrees):</label>
+                <input type="number" id="propPhase" value="${sourceDefinition.phaseAngle ?? 0}" step="0.1">
+            </div>
+            <div class="form-group" id="propFrequencyGroup" style="display: ${sourceDefinition.type === 'ac' ? 'block' : 'none'};">
+                <label>Frequency (Hz):</label>
+                <input type="number" id="propFrequency" value="${sourceDefinition.frequency ?? 0}" step="0.01" min="0">
+            </div>
+            ` : ''}
             <div class="form-group">
                 <label>Rotation:</label>
                 <div style="display: flex; gap: 5px;">
@@ -647,8 +741,38 @@ class CircuitSimulator {
             this.selectedComponent.node1 = node1;
             this.selectedComponent.node2 = node2;
             this.selectedComponent.value = valueInput.value;
+            if (this.isSourceComponent(this.selectedComponent.type)) {
+                const sourceTypeSelect = document.getElementById('propSourceType');
+                const phaseInput = document.getElementById('propPhase');
+                const frequencyInput = document.getElementById('propFrequency');
+                const sourceType = sourceTypeSelect ? sourceTypeSelect.value : 'dc';
+                const phaseAngle = phaseInput ? parseFloat(phaseInput.value) || 0 : 0;
+                const frequency = frequencyInput ? parseFloat(frequencyInput.value) || 0 : 0;
+                if (sourceType === 'ac' && (!frequencyInput || frequencyInput.value === '' || Number.isNaN(parseFloat(frequencyInput.value)))) {
+                    alert('Please provide a frequency for AC sources.');
+                    return;
+                }
+                this.selectedComponent.sourceDefinition = {
+                    type: sourceType,
+                    phaseAngle: sourceType === 'ac' ? phaseAngle : 0,
+                    frequency: sourceType === 'ac' ? frequency : 0
+                };
+            } else {
+                this.selectedComponent.sourceDefinition = null;
+            }
             
             this.redrawCanvas();
+        }
+    }
+
+    handlePropertySourceTypeChange(value) {
+        const phaseGroup = document.getElementById('propPhaseGroup');
+        const frequencyGroup = document.getElementById('propFrequencyGroup');
+        if (phaseGroup) {
+            phaseGroup.style.display = value === 'ac' ? 'block' : 'none';
+        }
+        if (frequencyGroup) {
+            frequencyGroup.style.display = value === 'ac' ? 'block' : 'none';
         }
     }
 
@@ -683,12 +807,22 @@ class CircuitSimulator {
 
     exportCircuit() {
         const circuitData = {
-            components: this.components.map(comp => ({
-                type: comp.type,
-                node1: comp.node1,
-                node2: comp.node2,
-                value: comp.value
-            }))
+            components: this.components.map(comp => {
+                const base = {
+                    type: comp.type,
+                    node1: comp.node1,
+                    node2: comp.node2,
+                    value: comp.value
+                };
+                if (this.isSourceComponent(comp.type) && comp.sourceDefinition) {
+                    base.source_definition = {
+                        type: comp.sourceDefinition.type,
+                        phase_angle: comp.sourceDefinition.phaseAngle,
+                        frequency: comp.sourceDefinition.frequency
+                    };
+                }
+                return base;
+            })
         };
         
         console.log('Circuit Data:', circuitData);
