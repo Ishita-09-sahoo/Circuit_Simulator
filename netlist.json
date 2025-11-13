@@ -1,0 +1,54 @@
+{
+  "components": [
+    {
+      "type": "voltage-source",
+      "node1": 0,
+      "node2": 1,
+      "value": "10",
+      "source_definition": {
+        "type": "ac",
+        "phase_angle": 0,
+        "frequency": 100
+      }
+    },
+    {
+      "type": "capacitor",
+      "node1": 1,
+      "node2": 2,
+      "value": "10"
+    },
+    {
+      "type": "resistor",
+      "node1": 2,
+      "node2": 3,
+      "value": "2"
+    },
+    {
+      "type": "inductor",
+      "node1": 0,
+      "node2": 4,
+      "value": "5"
+    },
+    {
+      "type": "resistor",
+      "node1": 0,
+      "node2": 2,
+      "value": "20"
+    },
+    {
+      "type": "current-source",
+      "node1": 4,
+      "node2": 3,
+      "value": "100",
+      "source_definition":{
+        "type":"dc"
+      }
+    },
+    {
+      "type": "capacitor",
+      "node1": 3,
+      "node2": 4,
+      "value": "10"
+    }
+  ]
+}
