@@ -15,7 +15,7 @@
       "type": "capacitor",
       "node1": 1,
       "node2": 2,
-      "value": "10"
+      "value": "0.00001"
     },
     {
       "type": "resistor",
@@ -27,7 +27,7 @@
       "type": "inductor",
       "node1": 0,
       "node2": 4,
-      "value": "5"
+      "value": "0.005"
     },
     {
       "type": "resistor",
@@ -48,7 +48,7 @@
       "type": "capacitor",
       "node1": 3,
       "node2": 4,
-      "value": "10"
+      "value": "0.00005"
     }
   ]
 }

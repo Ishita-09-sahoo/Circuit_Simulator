@@ -154,4 +154,6 @@ def solve_circuit(filename):
 # Run on your file
 # =============================
 if __name__ == "__main__":
-    solve_circuit("circuit (2).json")
+    solve_circuit("netlist.json")
+
+    
