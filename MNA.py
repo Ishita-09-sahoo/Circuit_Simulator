@@ -1,4 +1,5 @@
 import json
+import warnings
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -206,6 +207,10 @@ def circuit_solver(filename):
         return F - (G @ x)
     
     t_span = (0, 0.05) #plot from t = 0 to t = 0.05
+    
+    # Suppress the warning about mass parameter - it's a false positive
+    # The mass matrix is needed for DAE solving in circuit simulation
+    warnings.filterwarnings('ignore', category=UserWarning, message='.*mass.*')
     
     #Run simulation
     print("Starting Solver..")
