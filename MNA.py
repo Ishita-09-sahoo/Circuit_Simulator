@@ -1,10 +1,8 @@
 import json
-import warnings
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
-
 #functions
 def get_all_nodes(*dfs):
     nodes = set()
@@ -25,6 +23,7 @@ def stamp_resistor(G, n1_idx, n2_idx, R):
         G[n2_idx, n1_idx] -= Y
         
 def stamp_capacitor(C, n1_idx, n2_idx, C_value):
+    C_value = C_value * 1e-6 #micro-farad
     if n1_idx is not None:
         C[n1_idx, n1_idx] += C_value
     if n2_idx is not None:
@@ -35,13 +34,14 @@ def stamp_capacitor(C, n1_idx, n2_idx, C_value):
         
 
 def stamp_inductor(G, C, n1_idx, n2_idx, ind_idx, L_value,):
+    L_value = L_value * 1e-3 #milli-henry
     if n1_idx is not None:
         G[n1_idx, ind_idx] += 1
         G[ind_idx, n1_idx] += 1
     if n2_idx is not None:
         G[n2_idx, ind_idx] -= 1
         G[ind_idx, n2_idx] -= 1
-    C[ind_idx, ind_idx] = L_value
+    C[ind_idx, ind_idx] = -L_value
     
 def stamp_voltage_G(G, n1_idx, n2_idx, V_idx):
     if n1_idx is not None:
@@ -103,9 +103,10 @@ def circuit_solver(filename):
     inductors = passive_comp_df[passive_comp_df["type"] == "inductor"]
     ind_map = {int(idx): int(len(node_list) + num_V + i) for i, idx in enumerate(inductors.index)} #inductor current
     
-    # print("Number of each component: \n R:", n_resistor, ", C:", n_capacitor, ", L:", n_inductor)
-    # print ("Number of sources:")
-    # print ("Voltage sources:", num_V, "Current Sources:", num_I)
+    print("Number of each component: \n R:", n_resistor, ", C:", n_capacitor, ", L:", n_inductor)
+    print ("Number of sources:")
+    print ("Voltage sources:", num_V, "Current Sources:", num_I)
+    print("node_map: ", node_map)
       
     # Initialize matrices
     G = np.zeros([n+m, n+m])
@@ -137,12 +138,6 @@ def circuit_solver(filename):
         n2 = comp['node2']
         n1_idx = node_map.get(n1)
         n2_idx = node_map.get(n2)
-        
-        # CORRECT DEBUG LOGIC
-        if n1 != 0 and n1_idx is None: 
-            print(f">>> REAL ERROR: Node {n1} is missing from the map!")
-        elif n1 == 0:
-            print(f"Info: Node {n1} is Ground (skipped). This is correct.")
     
         value = float(comp['value'])
         if type == 'voltage-source':
@@ -197,7 +192,7 @@ def circuit_solver(filename):
             for i, idx in enumerate(src['indices']):
                 F[idx] += src['signs'][i] * src['value']
                 
-        if t > 0: # Avoid div by zero or initial artifacts if needed
+        if t > 0: 
             for src in ac_sources:
                 # V = A * sin(2*pi*f*t + phi)
                 val = src['value'] * np.sin(2 * np.pi * src['frequency'] * t + src['phase_angle'])
@@ -206,35 +201,47 @@ def circuit_solver(filename):
                     
         return F - (G @ x)
     
-    t_span = (0, 0.05) #plot from t = 0 to t = 0.05
-    
-    # Suppress the warning about mass parameter - it's a false positive
-    # The mass matrix is needed for DAE solving in circuit simulation
-    warnings.filterwarnings('ignore', category=UserWarning, message='.*mass.*')
-    
     #Run simulation
-    print("Starting Solver..")
-    sol = solve_ivp(
-        fun=circuit_odes,          
-        t_span=t_span,             # Time span
-        y0=x0,                     
-        method="Radau",            # <--- MUST BE "Radau" or "BDF"
-        t_eval=np.linspace(t_span[0], t_span[1], num=2000),
-        mass=C,                    # The Mass Matrix (Crucial!)
-        jac=lambda t, x: -G,       # The Jacobian
-        atol=1e-6,
-        rtol=1e-6
-    )
-    print("Solver finished.")
-    # print(sol)
+    print("--- Starting Backward Euler Solver ---")
+    dt = 1e-5                
+    t_end = 0.05            
+    steps = int(t_end / dt)
+    time_points = np.linspace(0, t_end, steps)
+
+    # A_effective = G + (C / dt)
+    A_eff = G + (C / dt)
+    x_current = x0.flatten() 
+    results_x = [x_current]
+    results_t = [0]
+
+    for i in range(1, steps):
+        t = time_points[i]
+        source_vector = circuit_odes(t, np.zeros_like(x_current))
+        rhs = source_vector + (C @ x_current) / dt
+        x_new = np.linalg.solve(A_eff, rhs)
+        results_x.append(x_new)
+        results_t.append(t)
+        x_current = x_new
+    print("--- Solver Finished ---")
     
-    plt.plot( sol.t, sol.y[node_map[1]], label = 'V1')
-    plt.xlabel('time (s)')
-    plt.ylabel('voltage (V)')
-    plt.legend()
+    sol_t = np.array(results_t)
+    sol_y = np.array(results_x).T 
+    # C (dx/dt) + Gx = F(t)
+    #Graphs in subplot
+    num_vars = len(node_map)
+    fig, axes = plt.subplots(num_vars, 1, figsize=(8, 3 * num_vars), sharex=True)
+    if num_vars == 1:
+        axes = [axes]
+    for i, (node_name, index) in enumerate(node_map.items()):
+        ax = axes[i]
+        ax.plot(sol_t, sol_y[index], color='tab:blue')
+        ax.set_ylabel('Value')
+        ax.set_title(f'Node {node_name}')
+        ax.grid(True)
+    axes[-1].set_xlabel('Time (s)')
+    plt.tight_layout() # Adjusts spacing so titles don't overlap
     plt.show()
     
-            
 file = 'netlist.json'
 circuit_solver(file)
             
