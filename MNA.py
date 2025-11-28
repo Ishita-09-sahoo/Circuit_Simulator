@@ -235,7 +235,7 @@ def circuit_solver(filename):
     for i, (node_name, index) in enumerate(node_map.items()):
         ax = axes[i]
         ax.plot(sol_t, sol_y[index], color='tab:blue')
-        ax.set_ylabel('Value')
+        ax.set_ylabel('V/A')
         ax.set_title(f'Node {node_name}')
         ax.grid(True)
     axes[-1].set_xlabel('Time (s)')
